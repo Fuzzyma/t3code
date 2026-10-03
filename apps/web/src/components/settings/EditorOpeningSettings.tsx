@@ -1,5 +1,5 @@
 import { resolveEnvironmentMachineKind, isWslDistroName } from "@t3tools/contracts";
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 
 import { isWindowsPlatform } from "~/lib/utils";
 import { useLocalWslEditor } from "~/localWslEditor";
@@ -20,10 +20,12 @@ function WslDistroForm({
   distro,
   environmentLabel,
   onSave,
+  modePicker,
 }: {
   readonly distro: string;
   readonly environmentLabel: string;
   readonly onSave: (distro: string) => void;
+  readonly modePicker: ReactNode;
 }) {
   const [draft, setDraft] = useState(distro);
   const inputId = useId();
@@ -36,8 +38,9 @@ function WslDistroForm({
         if (valid) onSave(draft.trim());
       }}
     >
-      <div className="flex max-w-sm items-center gap-2">
+      <div className="flex items-center gap-2">
         <Input
+          className="max-w-sm"
           id={inputId}
           aria-label={`${environmentLabel} local WSL distribution`}
           aria-describedby={`${inputId}-hint`}
@@ -56,6 +59,7 @@ function WslDistroForm({
         >
           Save
         </Button>
+        {modePicker}
       </div>
       <p id={`${inputId}-hint`} className="text-xs text-muted-foreground">
         {draft.length > 0 && !valid
@@ -70,6 +74,35 @@ function EditorOpeningRow({ environment }: { readonly environment: EnvironmentPr
   const [preference, setPreference] = useLocalWslEditor(environment.environmentId);
   const [editingWsl, setEditingWsl] = useState(false);
   const mode = preference !== null || editingWsl ? "wsl" : "automatic";
+  const modePicker = (
+    <Select
+      items={options}
+      value={mode}
+      onValueChange={(value) => {
+        if (value === "automatic") {
+          setPreference(null);
+          setEditingWsl(false);
+        } else if (value === "wsl") {
+          setEditingWsl(true);
+        }
+      }}
+    >
+      <SelectTrigger
+        size="sm"
+        className="w-32 shrink-0"
+        aria-label={`${environment.label} editor opening`}
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectPopup align="end" alignItemWithTrigger={false}>
+        {options.map(({ value, label }) => (
+          <SelectItem key={value} value={value}>
+            {label}
+          </SelectItem>
+        ))}
+      </SelectPopup>
+    </Select>
+  );
   return (
     <EnvironmentRow
       kind={resolveEnvironmentMachineKind(environment.serverConfig)}
@@ -84,37 +117,12 @@ function EditorOpeningRow({ environment }: { readonly environment: EnvironmentPr
             distro={preference?.distro ?? ""}
             environmentLabel={environment.label}
             onSave={(distro) => setPreference({ distro })}
+            modePicker={modePicker}
           />
         ) : null
       }
     >
-      <Select
-        items={options}
-        value={mode}
-        onValueChange={(value) => {
-          if (value === "automatic") {
-            setPreference(null);
-            setEditingWsl(false);
-          } else if (value === "wsl") {
-            setEditingWsl(true);
-          }
-        }}
-      >
-        <SelectTrigger
-          size="xs"
-          className="w-32"
-          aria-label={`${environment.label} editor opening`}
-        >
-          <SelectValue />
-        </SelectTrigger>
-        <SelectPopup align="end" alignItemWithTrigger={false}>
-          {options.map(({ value, label }) => (
-            <SelectItem key={value} value={value}>
-              {label}
-            </SelectItem>
-          ))}
-        </SelectPopup>
-      </Select>
+      {mode === "automatic" ? modePicker : null}
     </EnvironmentRow>
   );
 }
