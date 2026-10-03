@@ -36,9 +36,6 @@ function WslDistroForm({
         if (valid) onSave(draft.trim());
       }}
     >
-      <label htmlFor={inputId} className="text-xs text-muted-foreground">
-        WSL distribution on this device
-      </label>
       <div className="flex max-w-sm items-center gap-2">
         <Input
           id={inputId}
