@@ -1,6 +1,7 @@
-import { EnvironmentId, type EditorId } from "@t3tools/contracts";
+import { EnvironmentId, ProjectReadFileError, type EditorId } from "@t3tools/contracts";
 import { RelayConnectionTarget } from "@t3tools/client-runtime/connection";
 import * as Option from "effect/Option";
+import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/unstable/reactivity";
 import { act, useEffect } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
@@ -9,14 +10,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 import { useEditorOpening, useOpenInPreferredEditor } from "./editorPreferences";
 import { useLocalWslEditor } from "./localWslEditor";
 
-const { serverLaunch, openExternal, browserAssign, environmentPresentation } = vi.hoisted(() => ({
-  serverLaunch: vi.fn(),
-  openExternal: vi.fn(),
-  browserAssign: vi.fn(),
-  environmentPresentation: vi.fn(),
-}));
+const { serverLaunch, readFile, openExternal, browserAssign, environmentPresentation } = vi.hoisted(
+  () => ({
+    serverLaunch: vi.fn(),
+    readFile: vi.fn(),
+    openExternal: vi.fn(),
+    browserAssign: vi.fn(),
+    environmentPresentation: vi.fn(),
+  }),
+);
 
 vi.mock("./state/use-atom-command", () => ({ useAtomCommand: () => serverLaunch }));
+vi.mock("./state/use-atom-query-runner", () => ({ useAtomQueryRunner: () => readFile }));
 vi.mock("./state/presentation", () => ({
   useEnvironmentPresentation: environmentPresentation,
 }));
@@ -47,7 +52,7 @@ describe("device-local WSL editor opening", () => {
   }) {
     const opening = useEditorOpening(environmentId, editors);
     const preference = useLocalWslEditor(environmentId);
-    const openFile = useOpenInPreferredEditor(environmentId, []);
+    const openFile = useOpenInPreferredEditor(environmentId, editors);
     useEffect(() => {
       current = { opening, preference, openFile };
     }, [opening, preference, openFile]);
@@ -56,6 +61,7 @@ describe("device-local WSL editor opening", () => {
   beforeEach(() => {
     current = undefined;
     serverLaunch.mockReset().mockResolvedValue(AsyncResult.success(undefined));
+    readFile.mockReset().mockResolvedValue(AsyncResult.success({ contents: "" }));
     openExternal.mockReset().mockResolvedValue(true);
     browserAssign.mockReset();
     environmentPresentation.mockReset().mockImplementation((environmentId: EnvironmentId) => ({
@@ -175,6 +181,102 @@ describe("device-local WSL editor opening", () => {
     expect(openExternal).not.toHaveBeenCalled();
   });
 
+  it("opens known folders without a file position or a classification query", async () => {
+    await act(async () => {
+      renderer = create(<Harness environmentId={uliverse} />);
+    });
+    await act(async () => getCurrent().preference[1]({ distro: "Ubuntu" }));
+    await act(async () => {
+      expect(
+        (await getCurrent().opening.openEditor("/home/ulima/repo", undefined, "directory"))._tag,
+      ).toBe("Success");
+    });
+    expect(openExternal).toHaveBeenCalledExactlyOnceWith(
+      "vscode://vscode-remote/wsl+Ubuntu/home/ulima/repo",
+    );
+    expect(readFile).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { failure: "path_not_file" as const, suffix: "" },
+    { failure: "binary_file" as const, suffix: "%3A1" },
+    { failure: undefined, suffix: "%3A1" },
+  ])(
+    "opens an unpositioned terminal path with its actual target kind ($failure)",
+    async ({ failure, suffix }) => {
+      if (failure) {
+        readFile.mockResolvedValue(
+          AsyncResult.failure(
+            Cause.fail(
+              new ProjectReadFileError({
+                cwd: "/",
+                relativePath: "/home/ulima/repo/target",
+                failure,
+              }),
+            ),
+          ),
+        );
+      }
+      await act(async () => {
+        renderer = create(<Harness environmentId={uliverse} />);
+      });
+      await act(async () => getCurrent().preference[1]({ distro: "Ubuntu" }));
+      await act(async () => {
+        expect((await getCurrent().openFile("/home/ulima/repo/target", "auto"))._tag).toBe(
+          "Success",
+        );
+      });
+      expect(readFile).toHaveBeenCalledExactlyOnceWith({
+        environmentId: uliverse,
+        input: { cwd: "/", relativePath: "/home/ulima/repo/target" },
+      });
+      expect(openExternal).toHaveBeenCalledExactlyOnceWith(
+        `vscode://vscode-remote/wsl+Ubuntu/home/ulima/repo/target${suffix}`,
+      );
+    },
+  );
+
+  it("preserves a terminal file position without querying the file", async () => {
+    await act(async () => {
+      renderer = create(<Harness environmentId={uliverse} />);
+    });
+    await act(async () => getCurrent().preference[1]({ distro: "Ubuntu" }));
+    await act(async () => {
+      expect((await getCurrent().openFile("/home/ulima/repo/file.ts:12:3", "auto"))._tag).toBe(
+        "Success",
+      );
+    });
+    expect(readFile).not.toHaveBeenCalled();
+    expect(openExternal).toHaveBeenCalledExactlyOnceWith(
+      "vscode://vscode-remote/wsl+Ubuntu/home/ulima/repo/file.ts%3A12%3A3",
+    );
+  });
+
+  it("reports classification failures without launching or recording an editor", async () => {
+    readFile.mockResolvedValue(
+      AsyncResult.failure(
+        Cause.fail(
+          new ProjectReadFileError({
+            cwd: "/",
+            relativePath: "/home/ulima/repo/missing",
+            failure: "operation_failed",
+          }),
+        ),
+      ),
+    );
+    await act(async () => {
+      renderer = create(<Harness environmentId={uliverse} />);
+    });
+    await act(async () => getCurrent().preference[1]({ distro: "Ubuntu" }));
+    await act(async () => {
+      expect((await getCurrent().openFile("/home/ulima/repo/missing", "auto"))._tag).toBe(
+        "Failure",
+      );
+    });
+    expect(openExternal).not.toHaveBeenCalled();
+    expect(window.localStorage.getItem("t3code:last-editor")).toBeNull();
+  });
+
   it("keeps the mapping out of another browser profile", async () => {
     await act(async () => {
       renderer = create(<Harness environmentId={uliverse} />);
@@ -200,13 +302,14 @@ describe("device-local WSL editor opening", () => {
       renderer = create(<Harness environmentId={uliverse} editors={["cursor"]} />);
     });
     await act(async () => {
-      expect((await getCurrent().opening.openEditor("/home/ulima/repo"))._tag).toBe("Success");
+      expect((await getCurrent().openFile("/home/ulima/repo", "auto"))._tag).toBe("Success");
     });
     expect(serverLaunch).toHaveBeenCalledExactlyOnceWith({
       environmentId: uliverse,
       input: { cwd: "/home/ulima/repo", editor: "cursor" },
     });
     expect(openExternal).not.toHaveBeenCalled();
+    expect(readFile).not.toHaveBeenCalled();
   });
 
   it("preserves Automatic SSH links for another environment", async () => {
@@ -223,11 +326,12 @@ describe("device-local WSL editor opening", () => {
       renderer = create(<Harness environmentId={homebase} />);
     });
     await act(async () => {
-      expect((await getCurrent().opening.openEditor("/home/ulima/repo"))._tag).toBe("Success");
+      expect((await getCurrent().openFile("/home/ulima/repo", "auto"))._tag).toBe("Success");
     });
     expect(openExternal).toHaveBeenCalledExactlyOnceWith(
       "vscode://vscode-remote/ssh-remote+homebase/home/ulima/repo",
     );
     expect(serverLaunch).not.toHaveBeenCalled();
+    expect(readFile).not.toHaveBeenCalled();
   });
 });

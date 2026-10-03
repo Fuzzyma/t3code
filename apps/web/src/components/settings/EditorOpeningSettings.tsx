@@ -32,7 +32,7 @@ function WslDistroForm({
   const valid = isWslDistroName(draft.trim());
   return (
     <form
-      className="mt-3 space-y-2"
+      className="space-y-2"
       onSubmit={(event) => {
         event.preventDefault();
         if (valid) onSave(draft.trim());
@@ -70,7 +70,13 @@ function WslDistroForm({
   );
 }
 
-function EditorOpeningRow({ environment }: { readonly environment: EnvironmentPresentation }) {
+function EditorOpeningRow({
+  environment,
+  showEnvironment,
+}: {
+  readonly environment: EnvironmentPresentation;
+  readonly showEnvironment: boolean;
+}) {
   const [preference, setPreference] = useLocalWslEditor(environment.environmentId);
   const [editingWsl, setEditingWsl] = useState(false);
   const mode = preference !== null || editingWsl ? "wsl" : "automatic";
@@ -103,22 +109,29 @@ function EditorOpeningRow({ environment }: { readonly environment: EnvironmentPr
       </SelectPopup>
     </Select>
   );
+  const distroForm =
+    mode === "wsl" ? (
+      <WslDistroForm
+        key={preference?.distro ?? ""}
+        distro={preference?.distro ?? ""}
+        environmentLabel={environment.label}
+        onSave={(distro) => setPreference({ distro })}
+        modePicker={modePicker}
+      />
+    ) : null;
+  if (!showEnvironment) {
+    return (
+      <div className="px-3 pb-2.5 sm:px-4">
+        {distroForm ?? <div className="flex justify-end">{modePicker}</div>}
+      </div>
+    );
+  }
   return (
     <EnvironmentRow
       kind={resolveEnvironmentMachineKind(environment.serverConfig)}
       label={environment.label}
       subtitle={mode === "automatic" ? environmentTransportLabel(environment) : null}
-      below={
-        mode === "wsl" ? (
-          <WslDistroForm
-            key={preference?.distro ?? ""}
-            distro={preference?.distro ?? ""}
-            environmentLabel={environment.label}
-            onSave={(distro) => setPreference({ distro })}
-            modePicker={modePicker}
-          />
-        ) : null
-      }
+      below={distroForm ? <div className="mt-3">{distroForm}</div> : null}
     >
       {mode === "automatic" ? modePicker : null}
     </EnvironmentRow>
@@ -132,15 +145,24 @@ export function EditorOpeningSettings({
 }) {
   if (!isWindowsPlatform(navigator.platform) || environments.length === 0) return null;
   const { id, title } = searchableSetting("editor-opening");
+  const singleEnvironment = environments.length === 1 ? environments[0] : undefined;
   return (
-    <FoldedSettingsSection id={id} title={title} summary="This device">
+    <FoldedSettingsSection
+      id={id}
+      title={title}
+      summary={singleEnvironment ? `This device (${singleEnvironment.label})` : "This device"}
+    >
       <p className="px-3 py-2.5 text-xs text-muted-foreground sm:px-4">
         If an environment runs in WSL on this Windows device, open its files directly in that
         distribution without SSH. Save a distribution to enable this, or choose Automatic to restore
         the usual editor opening behavior. This preference stays on this device.
       </p>
       {environments.map((environment) => (
-        <EditorOpeningRow key={environment.environmentId} environment={environment} />
+        <EditorOpeningRow
+          key={environment.environmentId}
+          environment={environment}
+          showEnvironment={singleEnvironment === undefined}
+        />
       ))}
     </FoldedSettingsSection>
   );

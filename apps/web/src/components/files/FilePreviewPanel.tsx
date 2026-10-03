@@ -1123,7 +1123,7 @@ export default function FilePreviewPanel({
               keybindings={keybindings}
               availableEditors={availableEditors}
               openInCwd={absolutePath}
-              targetKind="file"
+              targetKind={isDirectory ? "directory" : "file"}
               compact
             />
           ) : null}

@@ -5,9 +5,12 @@ import {
   EditorId,
   EnvironmentId,
   WSL_CAPABLE_EDITOR_IDS,
+  ProjectReadFileError,
 } from "@t3tools/contracts";
+import { splitFilePathPosition } from "@t3tools/client-runtime/markdown-links";
 import {
   mapAtomCommandResult,
+  squashAtomCommandFailure,
   type AtomCommandFailure,
   type AtomCommandResult,
 } from "@t3tools/client-runtime/state/runtime";
@@ -18,9 +21,12 @@ import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useCallback, useMemo } from "react";
 import { shellEnvironment } from "./state/shell";
 import { useAtomCommand } from "./state/use-atom-command";
+import { useAtomQueryRunner } from "./state/use-atom-query-runner";
+import { projectEnvironment } from "./state/projects";
 import { openRemoteEditorUrl, useRemoteCapableEditors, useRemoteOpenState } from "./remoteOpen";
 
 const LAST_EDITOR_KEY = "t3code:last-editor";
+const isProjectReadFileError = Schema.is(ProjectReadFileError);
 
 export class PreferredEditorEnvironmentRequiredError extends Schema.TaggedError<PreferredEditorEnvironmentRequiredError>()(
   "PreferredEditorEnvironmentRequiredError",
@@ -84,17 +90,23 @@ export function useEditorOpening(
   const openInEditor = useAtomCommand(shellEnvironment.openInEditor, {
     reportFailure: false,
   });
+  const readFile = useAtomQueryRunner(projectEnvironment.readFile, {
+    reportFailure: false,
+    refresh: true,
+  });
   type OpenInEditorError = AtomCommandFailure<Awaited<ReturnType<typeof openInEditor>>>;
+  type ReadFileError = AtomCommandFailure<Awaited<ReturnType<typeof readFile>>>;
 
   const openEditor = useCallback(
     async (
       targetPath: string,
       requestedEditor?: EditorId,
-      targetKind: "file" | "directory" = "directory",
+      targetKind: "file" | "directory" | "auto" = "directory",
     ): Promise<
       AtomCommandResult<
         EditorId,
         | OpenInEditorError
+        | ReadFileError
         | PreferredEditorEnvironmentRequiredError
         | PreferredEditorUnavailableError
         | PreferredEditorLaunchError
@@ -122,13 +134,39 @@ export function useEditorOpening(
         );
       }
       if (remote.mode === "remote-links") {
+        let isFile = targetKind === "file";
+        if (remote.host.kind === "wsl" && targetKind === "auto") {
+          const position = splitFilePathPosition(targetPath);
+          if (position.line !== undefined) {
+            isFile = true;
+          } else {
+            // Unpositioned terminal paths can be folders or files. The existing
+            // file query stats first and reports folders without reading a body.
+            const result = await readFile({
+              environmentId,
+              input: { cwd: "/", relativePath: position.path },
+            });
+            if (result._tag === "Success") {
+              isFile = true;
+            } else {
+              const error = squashAtomCommandFailure(result);
+              if (isProjectReadFileError(error) && error.failure === "path_not_file") {
+                isFile = false;
+              } else if (isProjectReadFileError(error) && error.failure === "binary_file") {
+                isFile = true;
+              } else {
+                return mapAtomCommandResult(result, () => editor);
+              }
+            }
+          }
+        }
         const url =
           remote.host.kind === "wsl"
             ? buildWslOpenUrl({
                 editor,
                 distro: remote.host.host,
                 absolutePath: targetPath,
-                isFile: targetKind === "file",
+                isFile,
               })
             : buildRemoteOpenUrl({ editor, host: remote.host.host, absolutePath: targetPath });
         if (url === undefined || !(await openRemoteEditorUrl(url))) {
@@ -149,19 +187,29 @@ export function useEditorOpening(
       if (result._tag === "Success") setPreferredEditor(editor);
       return mapAtomCommandResult(result, () => editor);
     },
-    [effectiveEditors, environmentId, openInEditor, preferredEditor, remote, setPreferredEditor],
+    [
+      effectiveEditors,
+      environmentId,
+      openInEditor,
+      preferredEditor,
+      remote,
+      setPreferredEditor,
+      readFile,
+    ],
   );
 
   return { remote, availableEditors: effectiveEditors, preferredEditor, openEditor };
 }
 
+/** Known files open directly; arbitrary terminal paths use auto classification in WSL. */
 export function useOpenInPreferredEditor(
   environmentId: EnvironmentId | null,
   availableEditors: readonly EditorId[],
 ) {
   const { openEditor } = useEditorOpening(environmentId, availableEditors);
   return useCallback(
-    (targetPath: string) => openEditor(targetPath, undefined, "file"),
+    (targetPath: string, targetKind: "file" | "directory" | "auto" = "file") =>
+      openEditor(targetPath, undefined, targetKind),
     [openEditor],
   );
 }
