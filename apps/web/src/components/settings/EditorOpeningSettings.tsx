@@ -107,9 +107,7 @@ function EditorOpeningRow({ environment }: { readonly environment: EnvironmentPr
     <EnvironmentRow
       kind={resolveEnvironmentMachineKind(environment.serverConfig)}
       label={environment.label}
-      subtitle={
-        preference ? `Local WSL · ${preference.distro}` : environmentTransportLabel(environment)
-      }
+      subtitle={mode === "automatic" ? environmentTransportLabel(environment) : null}
       below={
         mode === "wsl" ? (
           <WslDistroForm
