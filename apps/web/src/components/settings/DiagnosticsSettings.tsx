@@ -779,29 +779,32 @@ export function DiagnosticsSettingsPanel() {
     };
   }, [environmentId]);
 
-  /** Opens the logs directory through the effective route and retains launch errors for display. */
-  const openLogsDirectory = useCallback(() => {
-    const logsDirectoryPath = observability?.logsDirectoryPath ?? null;
-    if (!logsDirectoryPath || preferredEditor === null) return;
+  const openLogsDirectory = useCallback(
+    /** Opens the logs directory through the effective route and retains launch errors for display. */
+    function openLogsDirectory() {
+      const logsDirectoryPath = observability?.logsDirectoryPath ?? null;
+      if (!logsDirectoryPath || preferredEditor === null) return;
 
-    if (environmentId === null) {
-      setOpenLogsDirectoryError("No environment is selected.");
-      return;
-    }
-
-    setIsOpeningLogsDirectory(true);
-    setOpenLogsDirectoryError(null);
-    void (async () => {
-      const result = await openInEditor(logsDirectoryPath);
-      setIsOpeningLogsDirectory(false);
-      if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
-        const error = squashAtomCommandFailure(result);
-        setOpenLogsDirectoryError(
-          error instanceof Error ? error.message : "Unable to open logs folder.",
-        );
+      if (environmentId === null) {
+        setOpenLogsDirectoryError("No environment is selected.");
+        return;
       }
-    })();
-  }, [environmentId, observability?.logsDirectoryPath, openInEditor, preferredEditor]);
+
+      setIsOpeningLogsDirectory(true);
+      setOpenLogsDirectoryError(null);
+      void (async () => {
+        const result = await openInEditor(logsDirectoryPath);
+        setIsOpeningLogsDirectory(false);
+        if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
+          const error = squashAtomCommandFailure(result);
+          setOpenLogsDirectoryError(
+            error instanceof Error ? error.message : "Unable to open logs folder.",
+          );
+        }
+      })();
+    },
+    [environmentId, observability?.logsDirectoryPath, openInEditor, preferredEditor],
+  );
 
   const isInitialLoading = isPending && data === null;
   const isProcessInitialLoading = isProcessPending && processData === null;

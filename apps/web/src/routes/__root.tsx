@@ -552,56 +552,58 @@ function EventRouter({
     })().catch(() => undefined);
   });
 
-  /** Reports keybindings reloads and offers the routed editor action when configuration is invalid. */
-  const handleServerConfigUpdated = useEffectEvent(() => {
-    const decision = keybindingsToastController.handle(serverConfigEvent);
-    if (!decision) {
-      return;
-    }
+  const handleServerConfigUpdated = useEffectEvent(
+    /** Reports keybindings reloads and offers the routed editor action when configuration is invalid. */
+    function handleServerConfigUpdated() {
+      const decision = keybindingsToastController.handle(serverConfigEvent);
+      if (!decision) {
+        return;
+      }
 
-    if (decision._tag === "Success") {
-      toastManager.add({
-        type: "success",
-        title: "Keybindings updated",
-        description: "Keybindings configuration reloaded successfully.",
-      });
-      return;
-    }
+      if (decision._tag === "Success") {
+        toastManager.add({
+          type: "success",
+          title: "Keybindings updated",
+          description: "Keybindings configuration reloaded successfully.",
+        });
+        return;
+      }
 
-    toastManager.add(
-      stackedThreadToast({
-        type: "warning",
-        title: "Invalid keybindings configuration",
-        description: decision.message,
-        actionVariant: "outline",
-        actionProps: {
-          children: "Open keybindings.json",
-          /** Opens the invalid configuration through the primary environment's editor route. */
-          onClick: () => {
-            if (!serverConfig || !primaryEnvironment) {
-              return;
-            }
-
-            void (async () => {
-              const result = await openInEditor(serverConfig.keybindingsConfigPath);
-              if (result._tag === "Success") {
+      toastManager.add(
+        stackedThreadToast({
+          type: "warning",
+          title: "Invalid keybindings configuration",
+          description: decision.message,
+          actionVariant: "outline",
+          actionProps: {
+            children: "Open keybindings.json",
+            /** Opens the invalid configuration through the primary environment's editor route. */
+            onClick: () => {
+              if (!serverConfig || !primaryEnvironment) {
                 return;
               }
-              const error = squashAtomCommandFailure(result);
-              toastManager.add(
-                stackedThreadToast({
-                  type: "error",
-                  title: "Unable to open keybindings file",
-                  description:
-                    error instanceof Error ? error.message : "Unknown error opening file.",
-                }),
-              );
-            })();
+
+              void (async () => {
+                const result = await openInEditor(serverConfig.keybindingsConfigPath);
+                if (result._tag === "Success") {
+                  return;
+                }
+                const error = squashAtomCommandFailure(result);
+                toastManager.add(
+                  stackedThreadToast({
+                    type: "error",
+                    title: "Unable to open keybindings file",
+                    description:
+                      error instanceof Error ? error.message : "Unknown error opening file.",
+                  }),
+                );
+              })();
+            },
           },
-        },
-      }),
-    );
-  });
+        }),
+      );
+    },
+  );
 
   useEffect(() => {
     if (!serverConfig) {

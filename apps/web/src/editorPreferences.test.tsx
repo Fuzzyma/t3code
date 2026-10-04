@@ -296,7 +296,19 @@ describe("device-local WSL editor opening", () => {
     },
   );
 
-  it("preserves a terminal file position without querying the file", async () => {
+  it("preserves a terminal file position after confirming the literal path is missing", async () => {
+    readFile.mockResolvedValueOnce(
+      AsyncResult.failure(
+        Cause.fail(
+          new ProjectReadFileError({
+            cwd: "/",
+            relativePath: "/home/ulima/repo/file.ts:12:3",
+            failure: "operation_failed",
+            pathNotFound: true,
+          }),
+        ),
+      ),
+    );
     await act(async () => {
       renderer = create(<Harness environmentId={uliverse} />);
     });
@@ -306,10 +318,76 @@ describe("device-local WSL editor opening", () => {
         "Success",
       );
     });
-    expect(readFile).not.toHaveBeenCalled();
+    expect(readFile.mock.calls).toEqual([
+      [
+        {
+          environmentId: uliverse,
+          input: { cwd: "/", relativePath: "/home/ulima/repo/file.ts:12:3" },
+        },
+      ],
+      [{ environmentId: uliverse, input: { cwd: "/", relativePath: "/home/ulima/repo/file.ts" } }],
+    ]);
     expect(openExternal).toHaveBeenCalledExactlyOnceWith(
       "vscode://vscode-remote/wsl+Ubuntu/home/ulima/repo/file.ts%3A12%3A3",
     );
+  });
+
+  it.each([undefined, "path_not_file", "binary_file"] as const)(
+    "preserves an existing literal terminal target with a numeric suffix (%s)",
+    async (failure) => {
+      if (failure)
+        readFile.mockResolvedValue(
+          AsyncResult.failure(
+            Cause.fail(
+              new ProjectReadFileError({
+                cwd: "/",
+                relativePath: "/home/ulima/repo/report:1",
+                failure,
+              }),
+            ),
+          ),
+        );
+      await act(async () => {
+        renderer = create(<Harness environmentId={uliverse} />);
+      });
+      await act(async () => getCurrent().preference[1]({ distro: "Ubuntu" }));
+      await act(async () => {
+        expect((await getCurrent().openFile("/home/ulima/repo/report:1", "auto"))._tag).toBe(
+          "Failure",
+        );
+      });
+      expect(readFile).toHaveBeenCalledExactlyOnceWith({
+        environmentId: uliverse,
+        input: { cwd: "/", relativePath: "/home/ulima/repo/report:1" },
+      });
+      expect(openExternal).not.toHaveBeenCalled();
+      expect(window.localStorage.getItem("t3code:last-editor")).toBeNull();
+    },
+  );
+
+  it("does not parse a suffix after a literal-path permission failure", async () => {
+    readFile.mockResolvedValue(
+      AsyncResult.failure(
+        Cause.fail(
+          new ProjectReadFileError({
+            cwd: "/",
+            relativePath: "/home/ulima/repo/report:1",
+            failure: "operation_failed",
+          }),
+        ),
+      ),
+    );
+    await act(async () => {
+      renderer = create(<Harness environmentId={uliverse} />);
+    });
+    await act(async () => getCurrent().preference[1]({ distro: "Ubuntu" }));
+    await act(async () => {
+      expect((await getCurrent().openFile("/home/ulima/repo/report:1", "auto"))._tag).toBe(
+        "Failure",
+      );
+    });
+    expect(readFile).toHaveBeenCalledTimes(1);
+    expect(openExternal).not.toHaveBeenCalled();
   });
 
   it("reports classification failures without launching or recording an editor", async () => {

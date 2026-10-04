@@ -89,14 +89,17 @@ export function useEditorOpening(
 ) {
   const remote = useRemoteOpenState(environmentId);
   const remoteCapableEditors = useRemoteCapableEditors();
-  /** Uses environment CLIs for local execution and client-supported editors for remote links. */
-  const effectiveEditors = useMemo(() => {
-    if (remote.mode === "local-exec") return availableEditors;
-    if (remote.mode === "remote-unavailable") return [];
-    return remote.host.kind === "wsl"
-      ? remoteCapableEditors.filter((editor) => WSL_CAPABLE_EDITOR_IDS.includes(editor))
-      : remoteCapableEditors;
-  }, [availableEditors, remote, remoteCapableEditors]);
+  const effectiveEditors = useMemo(
+    /** Uses environment CLIs for local execution and client-supported editors for remote links. */
+    function effectiveEditors() {
+      if (remote.mode === "local-exec") return availableEditors;
+      if (remote.mode === "remote-unavailable") return [];
+      return remote.host.kind === "wsl"
+        ? remoteCapableEditors.filter((editor) => WSL_CAPABLE_EDITOR_IDS.includes(editor))
+        : remoteCapableEditors;
+    },
+    [availableEditors, remote, remoteCapableEditors],
+  );
   const [preferredEditor, setPreferredEditor] = usePreferredEditor(effectiveEditors);
   const openInEditor = useAtomCommand(shellEnvironment.openInEditor, {
     reportFailure: false,
@@ -111,10 +114,10 @@ export function useEditorOpening(
   const openEditor = useCallback(
     /**
      * Opens a directory by default. Use file for known files or auto for terminal
-     * paths; only unpositioned WSL auto targets need a query to distinguish folders.
+     * paths; WSL auto targets query the literal path before interpreting a suffix.
      * Known file paths are literal; callers with a line position pass it separately.
      */
-    async (
+    async function openEditor(
       targetPath: string,
       requestedEditor?: EditorId,
       targetKind: "file" | "directory" | "auto" = "directory",
@@ -128,7 +131,7 @@ export function useEditorOpening(
         | PreferredEditorUnavailableError
         | PreferredEditorLaunchError
       >
-    > => {
+    > {
       if (environmentId === null) {
         return AsyncResult.failure(
           Cause.fail(
@@ -154,16 +157,30 @@ export function useEditorOpening(
         let isFile = targetKind === "file";
         let fileTarget = { path: targetPath, ...position };
         if (remote.host.kind === "wsl" && targetKind === "auto") {
-          if (position === undefined) fileTarget = splitFilePathPosition(targetPath);
           if (fileTarget.line !== undefined) {
             isFile = true;
           } else {
-            // Unpositioned terminal paths can be folders or files. The existing
-            // file query stats first and reports folders without reading a body.
-            const result = await readFile({
+            // Prefer an existing literal path. Only a confirmed missing path
+            // permits interpreting its numeric suffix as a line position.
+            let result = await readFile({
               environmentId,
               input: { cwd: "/", relativePath: fileTarget.path },
             });
+            if (result._tag === "Failure" && position === undefined) {
+              const error = squashAtomCommandFailure(result);
+              const parsedTarget = splitFilePathPosition(targetPath);
+              if (
+                isProjectReadFileError(error) &&
+                error.pathNotFound === true &&
+                parsedTarget.line !== undefined
+              ) {
+                fileTarget = parsedTarget;
+                result = await readFile({
+                  environmentId,
+                  input: { cwd: "/", relativePath: fileTarget.path },
+                });
+              }
+            }
             if (result._tag === "Success") {
               isFile = true;
             } else {

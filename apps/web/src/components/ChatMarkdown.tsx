@@ -2425,7 +2425,7 @@ function useChatMarkdownState({
   const preferredEditorMenuLabel = openInEditorMenuLabel(preferredEditor);
   const openInPreferredEditor = useCallback(
     /** Separates a Markdown link's explicit position from its file path before routing. */
-    (targetPath: string) => {
+    function openInPreferredEditor(targetPath: string) {
       const position = splitFilePathPosition(targetPath);
       return openEditor(position.path, undefined, "file", position);
     },
@@ -2662,7 +2662,11 @@ function useChatMarkdownState({
   );
   const fileLinkChip = useCallback(
     /** Builds a file chip with preview, editor, and reveal actions supported by its environment. */
-    (fileLinkMeta: MarkdownFileLinkMeta, copyMarkdown: string, mediaSource?: string) => {
+    function fileLinkChip(
+      fileLinkMeta: MarkdownFileLinkMeta,
+      copyMarkdown: string,
+      mediaSource?: string,
+    ) {
       const parentSuffix = fileLinkParentSuffixByPath.get(
         fileLinkMeta.filePath.replaceAll("\\", "/"),
       );
