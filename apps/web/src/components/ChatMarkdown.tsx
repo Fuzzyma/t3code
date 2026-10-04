@@ -2420,8 +2420,8 @@ function useChatMarkdownState({
     serverConfig?.availableEditors ?? [],
   );
   const preferredEditorMenuLabel = openInEditorMenuLabel(preferredEditor);
-  /** Opens Markdown file actions with file targeting so WSL does not treat them as folders. */
   const openInPreferredEditor = useCallback(
+    /** Opens Markdown file actions with file targeting so WSL does not treat them as folders. */
     (targetPath: string) => openEditor(targetPath, undefined, "file"),
     [openEditor],
   );
@@ -2654,8 +2654,8 @@ function useChatMarkdownState({
     },
     [cwd, findWorkspaceBasenameMatch, revealFileInFileManager],
   );
-  /** Builds a file chip with preview, editor, and reveal actions supported by its environment. */
   const fileLinkChip = useCallback(
+    /** Builds a file chip with preview, editor, and reveal actions supported by its environment. */
     (fileLinkMeta: MarkdownFileLinkMeta, copyMarkdown: string, mediaSource?: string) => {
       const parentSuffix = fileLinkParentSuffixByPath.get(
         fileLinkMeta.filePath.replaceAll("\\", "/"),

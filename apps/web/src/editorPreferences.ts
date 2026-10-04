@@ -104,11 +104,11 @@ export function useEditorOpening(
   type OpenInEditorError = AtomCommandFailure<Awaited<ReturnType<typeof openInEditor>>>;
   type ReadFileError = AtomCommandFailure<Awaited<ReturnType<typeof readFile>>>;
 
-  /**
-   * Opens a directory by default. Use file for known files or auto for terminal
-   * paths; only unpositioned WSL auto targets need a query to distinguish folders.
-   */
   const openEditor = useCallback(
+    /**
+     * Opens a directory by default. Use file for known files or auto for terminal
+     * paths; only unpositioned WSL auto targets need a query to distinguish folders.
+     */
     async (
       targetPath: string,
       requestedEditor?: EditorId,
