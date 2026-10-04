@@ -724,7 +724,10 @@ export function DiagnosticsSettingsPanel() {
   const signalServerProcess = useAtomCommand(serverEnvironment.signalProcess, {
     reportFailure: false,
   });
-  const { openEditor: openInEditor } = useEditorOpening(environmentId, availableEditors ?? []);
+  const { preferredEditor, openEditor: openInEditor } = useEditorOpening(
+    environmentId,
+    availableEditors ?? [],
+  );
   const [resourceWindowMs, setResourceWindowMs] = useState(15 * 60_000);
   const selectedResourceWindow =
     RESOURCE_HISTORY_WINDOWS.find((option) => option.windowMs === resourceWindowMs) ??
@@ -778,7 +781,7 @@ export function DiagnosticsSettingsPanel() {
 
   const openLogsDirectory = useCallback(() => {
     const logsDirectoryPath = observability?.logsDirectoryPath ?? null;
-    if (!logsDirectoryPath) return;
+    if (!logsDirectoryPath || preferredEditor === null) return;
 
     if (environmentId === null) {
       setOpenLogsDirectoryError("No environment is selected.");
@@ -797,7 +800,7 @@ export function DiagnosticsSettingsPanel() {
         );
       }
     })();
-  }, [environmentId, observability?.logsDirectoryPath, openInEditor]);
+  }, [environmentId, observability?.logsDirectoryPath, openInEditor, preferredEditor]);
 
   const isInitialLoading = isPending && data === null;
   const isProcessInitialLoading = isProcessPending && processData === null;
@@ -1037,7 +1040,11 @@ export function DiagnosticsSettingsPanel() {
                   <Button
                     size="icon-xs"
                     variant="ghost-muted"
-                    disabled={!observability?.logsDirectoryPath || isOpeningLogsDirectory}
+                    disabled={
+                      !observability?.logsDirectoryPath ||
+                      preferredEditor === null ||
+                      isOpeningLogsDirectory
+                    }
                     onClick={openLogsDirectory}
                     aria-label="Open logs folder"
                   >

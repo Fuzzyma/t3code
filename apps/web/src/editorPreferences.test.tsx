@@ -127,6 +127,20 @@ describe("device-local WSL editor opening", () => {
     expect(getCurrent().opening.preferredEditor).toBeNull();
   });
 
+  it("offers no editor when the environment has CLIs but no client-side route", async () => {
+    await act(async () => {
+      renderer = create(<Harness environmentId={uliverse} editors={["vscode", "cursor"]} />);
+    });
+    expect(getCurrent().opening.remote.mode).toBe("remote-unavailable");
+    expect(getCurrent().opening.availableEditors).toEqual([]);
+    expect(getCurrent().opening.preferredEditor).toBeNull();
+    await act(async () => {
+      expect((await getCurrent().opening.openEditor("/home/ulima/logs"))._tag).toBe("Failure");
+    });
+    expect(serverLaunch).not.toHaveBeenCalled();
+    expect(openExternal).not.toHaveBeenCalled();
+  });
+
   it("does not reuse one environment's distro after switching environments", async () => {
     await act(async () => {
       renderer = create(<Harness environmentId={uliverse} />);
