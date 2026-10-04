@@ -122,12 +122,12 @@ export const isWslDistroName = Schema.is(WslDistroName);
  * Files need a trailing line position; folders keep the unpositioned path.
  * Returns undefined for unsupported editors, invalid distro names, or relative paths.
  */
-export const buildWslOpenUrl = (input: {
+export function buildWslOpenUrl(input: {
   readonly editor: EditorId;
   readonly distro: string;
   readonly absolutePath: string;
   readonly isFile?: boolean;
-}): string | undefined => {
+}): string | undefined {
   if (
     !WSL_CAPABLE_EDITOR_IDS.includes(input.editor) ||
     !isWslDistroName(input.distro) ||
@@ -143,7 +143,7 @@ export const buildWslOpenUrl = (input: {
       : input.absolutePath;
   const encodedPath = targetPath.split("/").map(encodeURIComponent).join("/");
   return `${remoteSchemeForEditor(input.editor)}://vscode-remote/wsl+${encodeURIComponent(input.distro)}${encodedPath}`;
-};
+}
 
 /**
  * Builds a `<scheme>://vscode-remote/ssh-remote+<host><path>` deep link (Zed

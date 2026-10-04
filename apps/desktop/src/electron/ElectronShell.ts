@@ -45,15 +45,18 @@ function isWslEditorUrl(url: URL): boolean {
 const ZED_SSH_PATHNAME = /^\/[^/@:]+\/.*$/;
 
 /** Allows supported SSH and WSL editor links without embedded credentials. */
-const isRemoteEditorUrl = (url: URL) =>
-  REMOTE_EDITOR_PROTOCOLS.has(url.protocol) &&
-  url.username.length === 0 &&
-  url.password.length === 0 &&
-  (url.protocol === "zed:"
-    ? url.host === "ssh" && ZED_SSH_PATHNAME.test(url.pathname)
-    : url.host === "vscode-remote" &&
-      ((url.pathname.startsWith("/ssh-remote+") && url.pathname.length > "/ssh-remote+".length) ||
-        isWslEditorUrl(url)));
+function isRemoteEditorUrl(url: URL) {
+  return (
+    REMOTE_EDITOR_PROTOCOLS.has(url.protocol) &&
+    url.username.length === 0 &&
+    url.password.length === 0 &&
+    (url.protocol === "zed:"
+      ? url.host === "ssh" && ZED_SSH_PATHNAME.test(url.pathname)
+      : url.host === "vscode-remote" &&
+        ((url.pathname.startsWith("/ssh-remote+") && url.pathname.length > "/ssh-remote+".length) ||
+          isWslEditorUrl(url)))
+  );
+}
 
 /** Returns a normalized web or supported editor URL that the OS may open. */
 export function parseSafeExternalUrl(rawUrl: unknown): Option.Option<string> {
