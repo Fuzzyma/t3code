@@ -138,6 +138,7 @@ export function useFileContextMenu(environmentId: EnvironmentId | null) {
       editorIds,
     };
 
+    /** Validates the file action's capabilities, dispatches it, and reports launch failures. */
     const activate = async (
       action: FileContextMenuAction,
       target: FileContextMenuTarget,

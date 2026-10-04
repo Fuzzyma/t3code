@@ -779,6 +779,7 @@ export function DiagnosticsSettingsPanel() {
     };
   }, [environmentId]);
 
+  /** Opens the logs directory through the effective route and retains launch errors for display. */
   const openLogsDirectory = useCallback(() => {
     const logsDirectoryPath = observability?.logsDirectoryPath ?? null;
     if (!logsDirectoryPath || preferredEditor === null) return;

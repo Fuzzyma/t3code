@@ -27,6 +27,7 @@ export function useOpenFavoriteEditorShortcut({
 
   useEffect(() => {
     if (!enabled) return;
+    /** Consumes an unhandled matching shortcut and displays any editor-launch failure. */
     const handler = (event: globalThis.KeyboardEvent) => {
       if (event.defaultPrevented) return;
       if (!isOpenFavoriteEditorShortcut(event, keybindings)) return;

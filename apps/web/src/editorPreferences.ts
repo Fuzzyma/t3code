@@ -56,6 +56,7 @@ export class PreferredEditorLaunchError extends Schema.TaggedError<PreferredEdit
   "PreferredEditorLaunchError",
   { editor: EditorId, targetPath: Schema.String },
 ) {
+  /** Identifies the editor and target when constructing or handing off its URL fails. */
   override get message(): string {
     return `Could not open ${this.targetPath} in ${this.editor}.`;
   }

@@ -231,6 +231,7 @@ export const OpenInPicker = memo(function OpenInPicker({
   );
   const primaryOption = options.find(({ value }) => value === preferredEditor) ?? null;
 
+  /** Launches the selected target and dismisses the SSH setup hint only after acceptance. */
   const openInEditor = useCallback(
     async (editorId: EditorId | null) => {
       if (!openInCwd) return;

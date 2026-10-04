@@ -2420,6 +2420,7 @@ function useChatMarkdownState({
     serverConfig?.availableEditors ?? [],
   );
   const preferredEditorMenuLabel = openInEditorMenuLabel(preferredEditor);
+  /** Opens Markdown file actions with file targeting so WSL does not treat them as folders. */
   const openInPreferredEditor = useCallback(
     (targetPath: string) => openEditor(targetPath, undefined, "file"),
     [openEditor],

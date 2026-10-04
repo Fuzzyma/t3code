@@ -39,10 +39,12 @@ describe("device-local WSL editor opening", () => {
         openFile: ReturnType<typeof useOpenInPreferredEditor>;
       }
     | undefined;
+  /** Requires a committed harness render before a test reads or invokes its hook state. */
   const getCurrent = () => {
     if (current === undefined) throw new Error("Editor opening harness has not rendered");
     return current;
   };
+  /** Exposes routing and storage hooks together to test changes across renders and remounts. */
   function Harness({
     environmentId,
     editors = noEditors,

@@ -364,6 +364,7 @@ export function TerminalViewport({
     environmentId,
     serverConfig?.availableEditors ?? [],
   );
+  /** Resolves terminal links as files or folders using the current preferred editor route. */
   const openTerminalPath = useEffectEvent((target: string) =>
     openInPreferredEditor(target, "auto"),
   );
