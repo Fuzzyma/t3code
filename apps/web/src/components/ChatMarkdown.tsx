@@ -50,10 +50,7 @@ import {
   classifyMarkdownImageSource,
   markdownImageSourceFragment,
 } from "@t3tools/client-runtime/markdown-images";
-import {
-  inlineCodeFilePathCandidate,
-  splitFilePathPosition,
-} from "@t3tools/client-runtime/markdown-links";
+import { inlineCodeFilePathCandidate } from "@t3tools/client-runtime/markdown-links";
 import { mediaFileReference, mediaUrlReference } from "@t3tools/client-runtime/media-reference";
 import { mediaKindFromPath, mediaMimeTypeFromExtension } from "@t3tools/shared/filePreview";
 import * as Cause from "effect/Cause";
@@ -2423,11 +2420,11 @@ function useChatMarkdownState({
     serverConfig?.availableEditors ?? [],
   );
   const preferredEditorMenuLabel = openInEditorMenuLabel(preferredEditor);
+
   const openInPreferredEditor = useCallback(
-    /** Separates a Markdown link's explicit position from its file path before routing. */
+    /** Keeps the original Markdown target so WSL can resolve literal paths before positions. */
     function openInPreferredEditor(targetPath: string) {
-      const position = splitFilePathPosition(targetPath);
-      return openEditor(position.path, undefined, "file", position);
+      return openEditor(targetPath, undefined, "auto");
     },
     [openEditor],
   );
@@ -2660,6 +2657,7 @@ function useChatMarkdownState({
     },
     [cwd, findWorkspaceBasenameMatch, revealFileInFileManager],
   );
+
   const fileLinkChip = useCallback(
     /** Builds a file chip with preview, editor, and reveal actions supported by its environment. */
     function fileLinkChip(

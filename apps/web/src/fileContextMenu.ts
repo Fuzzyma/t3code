@@ -139,10 +139,10 @@ export function useFileContextMenu(environmentId: EnvironmentId | null) {
     };
 
     /** Validates the file action's capabilities, dispatches it, and reports launch failures. */
-    const activate = async (
+    async function activate(
       action: FileContextMenuAction,
       target: FileContextMenuTarget,
-    ): Promise<void> => {
+    ): Promise<void> {
       const absolutePath = resolveFileContextMenuAbsolutePath(target);
       if (absolutePath === null || environmentId === null) return;
 
@@ -171,7 +171,7 @@ export function useFileContextMenu(environmentId: EnvironmentId | null) {
               : `Could not open in ${EDITOR_LABEL_BY_ID.get(editor) ?? editor}`,
         description: absolutePath,
       });
-    };
+    }
 
     const show = async (
       target: FileContextMenuTarget,

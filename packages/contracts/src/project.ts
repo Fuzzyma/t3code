@@ -470,6 +470,7 @@ export class ProjectReadFileError extends Schema.TaggedError<ProjectReadFileErro
     cause: Schema.optional(Schema.Defect()),
   },
 ) {
+  /** Retains structured file classification while deriving a readable failure message. */
   // @effect-diagnostics-next-line overriddenSchemaConstructor:off
   constructor(props: ProjectFileFailureContext) {
     super({
@@ -527,6 +528,7 @@ export class ProjectWriteFileError extends Schema.TaggedError<ProjectWriteFileEr
     cause: Schema.optional(Schema.Defect()),
   },
 ) {
+  /** Carries workspace and operation context into a serializable write failure. */
   // @effect-diagnostics-next-line overriddenSchemaConstructor:off
   constructor(props: ProjectFileFailureContext) {
     super({

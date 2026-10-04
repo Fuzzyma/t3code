@@ -38,6 +38,7 @@ export class PreferredEditorEnvironmentRequiredError extends Schema.TaggedError<
     targetPath: Schema.String,
   },
 ) {
+  /** Identifies the target when routing cannot start without a selected environment. */
   override get message(): string {
     return `Cannot open ${this.targetPath} because no environment is selected.`;
   }
@@ -51,6 +52,7 @@ export class PreferredEditorUnavailableError extends Schema.TaggedError<Preferre
     availableEditorIds: Schema.Array(EditorId),
   },
 ) {
+  /** Reports the target and environment when the effective route offers no usable editor. */
   override get message(): string {
     return `No available editor can open ${this.targetPath} in environment ${this.environmentId}.`;
   }
@@ -89,6 +91,7 @@ export function useEditorOpening(
 ) {
   const remote = useRemoteOpenState(environmentId);
   const remoteCapableEditors = useRemoteCapableEditors();
+
   const effectiveEditors = useMemo(
     /** Uses environment CLIs for local execution and client-supported editors for remote links. */
     function effectiveEditors() {

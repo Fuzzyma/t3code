@@ -50,6 +50,7 @@ const UNRESOLVED_REMOTE_OPEN: RemoteOpenResolution = {
   isResolved: false,
 };
 
+/** Extracts a hostname without treating malformed environment URLs as local endpoints. */
 function parseHostname(url: string): string | null {
   try {
     return new URL(url).hostname;
@@ -142,18 +143,19 @@ export function useRemoteOpenResolution(environmentId: EnvironmentId | null): Re
   }, [presentation, localWsl]);
 }
 
+/** Returns the environment's effective editor route, including this device's WSL override. */
 export function useRemoteOpenState(environmentId: EnvironmentId | null): RemoteOpenState {
   return useRemoteOpenResolution(environmentId).state;
 }
 
-/**
- * Editors offered in remote-link mode. The desktop app probes the machine the
- * renderer runs on; a browser cannot, so it offers VS Code only.
- */
 const REMOTE_FALLBACK_EDITORS: ReadonlyArray<EditorId> = ["vscode"];
 
 let cachedProbedEditors: ReadonlyArray<EditorId> | null = null;
 
+/**
+ * Offers editors installed on the viewing desktop. Browsers cannot probe
+ * installed editors, so they offer VS Code for remote links.
+ */
 export function useRemoteCapableEditors(): ReadonlyArray<EditorId> {
   const [editors, setEditors] = useState<ReadonlyArray<EditorId>>(
     () => cachedProbedEditors ?? REMOTE_FALLBACK_EDITORS,
@@ -212,13 +214,9 @@ export async function openRemoteEditorUrl(url: string): Promise<boolean> {
   }
 }
 
-/**
- * One-time "you need SSH keys on that machine" hint, shown in the picker menu
- * until the first remote open fires (we cannot observe SSH success from here,
- * so first click is the dismiss signal).
- */
 const REMOTE_OPEN_HINT_KEY = "t3code:remote-open-hint-seen";
 
+/** Remembers an accepted SSH handoff on this device so its setup hint stops appearing. */
 export function useRemoteOpenHint(): readonly [seen: boolean, markSeen: () => void] {
   const [seen, setSeen] = useLocalStorage(REMOTE_OPEN_HINT_KEY, false, Schema.Boolean);
   return [seen, () => setSeen(true)] as const;

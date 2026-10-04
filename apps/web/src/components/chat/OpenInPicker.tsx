@@ -266,7 +266,7 @@ export const OpenInPicker = memo(function OpenInPicker({
   useEffect(() => {
     if (!enableShortcut) return;
     /** Consumes an unhandled favorite-editor shortcut when the picker has a usable target. */
-    const handler = (e: globalThis.KeyboardEvent) => {
+    function handler(e: globalThis.KeyboardEvent) {
       if (e.defaultPrevented) return;
       if (!isOpenFavoriteEditorShortcut(e, keybindings)) return;
       if (!openInCwd) return;
@@ -274,7 +274,7 @@ export const OpenInPicker = memo(function OpenInPicker({
 
       e.preventDefault();
       void openInEditor(preferredEditor);
-    };
+    }
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [enableShortcut, keybindings, openInCwd, openInEditor, preferredEditor]);

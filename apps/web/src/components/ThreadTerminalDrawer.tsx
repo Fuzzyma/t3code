@@ -364,12 +364,11 @@ export function TerminalViewport({
     environmentId,
     serverConfig?.availableEditors ?? [],
   );
-  const openTerminalPath = useEffectEvent(
-    /** Resolves terminal links as files or folders using the current preferred editor route. */
-    function openTerminalPath(target: string) {
-      return openInPreferredEditor(target, "auto");
-    },
-  );
+  /** Resolves terminal links as files or folders using the current preferred editor route. */
+  function openTerminalTarget(target: string) {
+    return openInPreferredEditor(target, "auto");
+  }
+  const openTerminalPath = useEffectEvent(openTerminalTarget);
   const openPreview = useAtomCommand(previewEnvironment.open, {
     reportFailure: false,
   });

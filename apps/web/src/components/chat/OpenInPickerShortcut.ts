@@ -28,7 +28,7 @@ export function useOpenFavoriteEditorShortcut({
   useEffect(() => {
     if (!enabled) return;
     /** Consumes an unhandled matching shortcut and displays any editor-launch failure. */
-    const handler = (event: globalThis.KeyboardEvent) => {
+    function handler(event: globalThis.KeyboardEvent) {
       if (event.defaultPrevented) return;
       if (!isOpenFavoriteEditorShortcut(event, keybindings)) return;
       if (!openInCwd || !preferredEditor) return;
@@ -44,7 +44,7 @@ export function useOpenFavoriteEditorShortcut({
           });
         }
       });
-    };
+    }
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [enabled, keybindings, openInCwd, openEditor, preferredEditor]);
