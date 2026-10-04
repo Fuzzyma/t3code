@@ -27,6 +27,10 @@ const WSL_EDITOR_PROTOCOLS = new Set(
   WSL_CAPABLE_EDITOR_IDS.map((id) => `${remoteSchemeForEditor(id)}:`),
 );
 
+/**
+ * Checks the WSL path and editor protocol after the caller validates the host
+ * and credentials. Malformed distro encoding is rejected by parseSafeExternalUrl.
+ */
 function isWslEditorUrl(url: URL): boolean {
   const match = /^\/wsl\+([^/]+)\//.exec(url.pathname);
   const distro = match?.[1];
@@ -40,6 +44,7 @@ function isWslEditorUrl(url: URL): boolean {
 // Zed's host sits in the first path segment, so it needs its own userinfo ban.
 const ZED_SSH_PATHNAME = /^\/[^/@:]+\/.*$/;
 
+/** Allows supported SSH and WSL editor links without embedded credentials. */
 const isRemoteEditorUrl = (url: URL) =>
   REMOTE_EDITOR_PROTOCOLS.has(url.protocol) &&
   url.username.length === 0 &&
@@ -50,6 +55,7 @@ const isRemoteEditorUrl = (url: URL) =>
       ((url.pathname.startsWith("/ssh-remote+") && url.pathname.length > "/ssh-remote+".length) ||
         isWslEditorUrl(url)));
 
+/** Returns a normalized web or supported editor URL that the OS may open. */
 export function parseSafeExternalUrl(rawUrl: unknown): Option.Option<string> {
   if (typeof rawUrl !== "string") {
     return Option.none();

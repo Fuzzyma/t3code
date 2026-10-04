@@ -1838,6 +1838,10 @@ function CloudRemoteEnvironmentRows({
   ) : null;
 }
 
+/**
+ * Manages environment connections and their device-local settings.
+ * Editor-opening overrides are configured independently for each environment.
+ */
 export function ConnectionsSettings() {
   const desktopBridge = window.desktopBridge;
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);

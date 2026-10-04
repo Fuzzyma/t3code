@@ -710,6 +710,10 @@ function DiagnosticsRefreshButton({
   );
 }
 
+/**
+ * Inspects diagnostics for the connected environment selected in Settings.
+ * Its logs-directory action uses that environment's preferred editor route.
+ */
 export function DiagnosticsSettingsPanel() {
   const { environment } = useSettingsScope();
   // The boundary only mounts this page when the selection resolves to one

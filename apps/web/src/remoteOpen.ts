@@ -1,8 +1,7 @@
 /**
- * Remote open-in-editor: when this client is not on the environment's
- * machine, "Open" must hand the OS a `vscode://vscode-remote/ssh-remote+…`
- * deep link (local editor connects over SSH) instead of exec'ing an editor
- * on the environment host.
+ * Editor opening uses a local WSL deep link when explicitly configured on
+ * Windows. Otherwise, remote clients use an SSH deep link instead of executing
+ * an editor on the environment host.
  *
  * Host precedence: a desktop-SSH environment's real `~/.ssh/config` alias
  * beats server-advertised names; among advertised names the tailnet MagicDNS
@@ -59,6 +58,11 @@ function parseHostname(url: string): string | null {
   }
 }
 
+/**
+ * Selects local execution or a client-side editor link. A valid Windows WSL
+ * override wins; Automatic uses local execution, an SSH alias, or the first
+ * advertised host, and disables opening when no remote route is available.
+ */
 export function resolveRemoteOpenState(input: {
   readonly target: ConnectionTarget | null;
   /** Real ssh alias for desktop-SSH environments; null elsewhere. */
@@ -109,6 +113,10 @@ export function resolveRemoteOpenState(input: {
   return REMOTE_UNAVAILABLE;
 }
 
+/**
+ * Combines environment connection details with this device's WSL preference.
+ * isResolved distinguishes missing presentation data from a resolved route.
+ */
 export function useRemoteOpenResolution(environmentId: EnvironmentId | null): RemoteOpenResolution {
   const { presentation } = useEnvironmentPresentation(environmentId);
   const [localWsl] = useLocalWslEditor(environmentId);

@@ -6,6 +6,10 @@ import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime"
 import { isOpenFavoriteEditorShortcut } from "../../keybindings";
 import { toastManager } from "../ui/toast";
 
+/**
+ * Opens the workspace through the selected editor route on its keybinding.
+ * Events already handled by another picker are ignored to avoid duplicate launches.
+ */
 export function useOpenFavoriteEditorShortcut({
   enabled,
   environmentId,

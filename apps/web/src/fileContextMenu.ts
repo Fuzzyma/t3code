@@ -109,11 +109,10 @@ export function buildFileContextMenuItems(input: {
 }
 
 /**
- * Context-menu actions for files. The environment id is fixed per component
- * (a thread's environment, a file browser's environment), so capabilities
- * resolve once per hook call.
+ * Builds file actions for the component's environment. Explicit editor actions
+ * use the selected local, SSH, or WSL route; default opening and file-manager
+ * reveal retain the environment's shell capabilities.
  */
-/** Builds and dispatches the file context menu for one environment's files. */
 export function useFileContextMenu(environmentId: EnvironmentId | null) {
   const openInEditor = useAtomCommand(shellEnvironment.openInEditor, { reportFailure: false });
   const serverConfig = useAtomValue(serverEnvironment.configValueAtom(environmentId));

@@ -2316,6 +2316,10 @@ function areMarkdownFileLinkPropsEqual(
   );
 }
 
+/**
+ * Prepares Markdown renderers and actions for the message's environment.
+ * File actions use its editor route; remote WSL opening does not enable shell reveal.
+ */
 function useChatMarkdownState({
   text,
   cwd,

@@ -16,6 +16,10 @@ const options = [
   { value: "wsl", label: "Local WSL" },
 ];
 
+/**
+ * Edits a distro name without changing the saved route until submission.
+ * Validation checks its syntax; the user supplies the installed distro name.
+ */
 function WslDistroForm({
   distro,
   environmentLabel,
@@ -70,6 +74,10 @@ function WslDistroForm({
   );
 }
 
+/**
+ * Configures one environment's route on this device. Selecting WSL starts an
+ * unsaved draft; selecting Automatic removes the saved override immediately.
+ */
 function EditorOpeningRow({
   environment,
   showEnvironment,
@@ -138,6 +146,10 @@ function EditorOpeningRow({
   );
 }
 
+/**
+ * Windows-only route settings, with named rows when several environments exist
+ * and the environment name in the heading when there is only one.
+ */
 export function EditorOpeningSettings({
   environments,
 }: {

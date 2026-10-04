@@ -478,6 +478,10 @@ function AuthenticatedTracingBootstrap() {
   return null;
 }
 
+/**
+ * Handles app navigation and keybindings driven by the primary environment.
+ * Opening its keybindings config uses the preferred editor route as a file target.
+ */
 function EventRouter({
   skipInitialBootstrapNavigation,
 }: {

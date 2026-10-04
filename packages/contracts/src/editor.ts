@@ -114,9 +114,14 @@ export const remoteSchemeForEditor = (id: EditorId): string | undefined => {
 export const WSL_CAPABLE_EDITOR_IDS: ReadonlyArray<EditorId> = ["vscode", "vscode-insiders"];
 
 export const WslDistroName = TrimmedNonEmptyString.check(Schema.isPattern(/^\w(?:[\w \-.]*\w)?$/));
+/** Checks distro-name syntax without querying installed Windows distributions. */
 export const isWslDistroName = Schema.is(WslDistroName);
 
-/** Opens a path in a distro on the viewing Windows machine, without SSH. */
+/**
+ * Builds a supported editor's deep link to an absolute path in a local WSL distro.
+ * Files need a trailing line position; folders keep the unpositioned path.
+ * Returns undefined for unsupported editors, invalid distro names, or relative paths.
+ */
 export const buildWslOpenUrl = (input: {
   readonly editor: EditorId;
   readonly distro: string;

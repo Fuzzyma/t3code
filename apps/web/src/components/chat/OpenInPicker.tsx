@@ -189,6 +189,10 @@ function getOpenInIconClass(kind: OpenInOption["kind"]) {
   return cn(kind === "brand" ? "text-foreground opacity-100" : "text-muted-foreground");
 }
 
+/**
+ * Offers editors supported by the selected route and opens the supplied target.
+ * Workspace callers use the directory default; file previews pass their target kind.
+ */
 export const OpenInPicker = memo(function OpenInPicker({
   environmentId,
   keybindings,

@@ -61,6 +61,7 @@ export class PreferredEditorLaunchError extends Schema.TaggedError<PreferredEdit
   }
 }
 
+/** Uses the last chosen editor when available, otherwise the editor catalog's order. */
 export function usePreferredEditor(availableEditors: ReadonlyArray<EditorId>) {
   const [lastEditor, setLastEditor] = useLocalStorage(LAST_EDITOR_KEY, null, EditorId);
 
@@ -72,7 +73,11 @@ export function usePreferredEditor(availableEditors: ReadonlyArray<EditorId>) {
   return [effectiveEditor, setLastEditor] as const;
 }
 
-/** Editor selection and launch routing shared by pickers, file actions, and shortcuts. */
+/**
+ * Shares editor selection and local, SSH, or WSL launch routing across entry
+ * points. Launches return typed failures and remember the editor only after
+ * the server or URL handler accepts the request.
+ */
 export function useEditorOpening(
   environmentId: EnvironmentId | null,
   availableEditors: readonly EditorId[],
@@ -97,6 +102,10 @@ export function useEditorOpening(
   type OpenInEditorError = AtomCommandFailure<Awaited<ReturnType<typeof openInEditor>>>;
   type ReadFileError = AtomCommandFailure<Awaited<ReturnType<typeof readFile>>>;
 
+  /**
+   * Opens a directory by default. Use file for known files or auto for terminal
+   * paths; only unpositioned WSL auto targets need a query to distinguish folders.
+   */
   const openEditor = useCallback(
     async (
       targetPath: string,
