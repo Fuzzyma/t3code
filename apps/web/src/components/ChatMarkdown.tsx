@@ -50,7 +50,10 @@ import {
   classifyMarkdownImageSource,
   markdownImageSourceFragment,
 } from "@t3tools/client-runtime/markdown-images";
-import { inlineCodeFilePathCandidate } from "@t3tools/client-runtime/markdown-links";
+import {
+  inlineCodeFilePathCandidate,
+  splitFilePathPosition,
+} from "@t3tools/client-runtime/markdown-links";
 import { mediaFileReference, mediaUrlReference } from "@t3tools/client-runtime/media-reference";
 import { mediaKindFromPath, mediaMimeTypeFromExtension } from "@t3tools/shared/filePreview";
 import * as Cause from "effect/Cause";
@@ -2421,8 +2424,11 @@ function useChatMarkdownState({
   );
   const preferredEditorMenuLabel = openInEditorMenuLabel(preferredEditor);
   const openInPreferredEditor = useCallback(
-    /** Opens Markdown file actions with file targeting so WSL does not treat them as folders. */
-    (targetPath: string) => openEditor(targetPath, undefined, "file"),
+    /** Separates a Markdown link's explicit position from its file path before routing. */
+    (targetPath: string) => {
+      const position = splitFilePathPosition(targetPath);
+      return openEditor(position.path, undefined, "file", position);
+    },
     [openEditor],
   );
   const openInEditor = useAtomCommand(shellEnvironment.openInEditor, {

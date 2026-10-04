@@ -20,8 +20,14 @@ const { serverLaunch, readFile, openExternal, browserAssign, environmentPresenta
   }),
 );
 
-vi.mock("./state/use-atom-command", () => ({ useAtomCommand: () => serverLaunch }));
-vi.mock("./state/use-atom-query-runner", () => ({ useAtomQueryRunner: () => readFile }));
+vi.mock("./state/use-atom-command", () => ({
+  /** Captures server-side editor launches while retaining their typed command results. */
+  useAtomCommand: () => serverLaunch,
+}));
+vi.mock("./state/use-atom-query-runner", () => ({
+  /** Controls file classification results without making a live environment query. */
+  useAtomQueryRunner: () => readFile,
+}));
 vi.mock("./state/presentation", () => ({
   useEnvironmentPresentation: environmentPresentation,
 }));
@@ -82,12 +88,16 @@ describe("device-local WSL editor opening", () => {
       "window",
       Object.assign(new EventTarget(), {
         localStorage: {
+          /** Reads only this browser profile's in-memory preference values. */
           getItem: (key: string) => storage.get(key) ?? null,
+          /** Retains saved preferences across harness renders and remounts. */
           setItem: (key: string, value: string) => storage.set(key, value),
+          /** Removes an override when the harness selects Automatic. */
           removeItem: (key: string) => storage.delete(key),
         },
         desktopBridge: {
           openExternal,
+          /** Advertises the Windows editor that can handle these WSL links. */
           probeRemoteEditors: async () => ["vscode"],
         },
         location: { assign: browserAssign },
@@ -213,6 +223,40 @@ describe("device-local WSL editor opening", () => {
     expect(readFile).not.toHaveBeenCalled();
   });
 
+  it("refuses a known filename with a numeric colon instead of opening a different file", async () => {
+    await act(async () => {
+      renderer = create(<Harness environmentId={uliverse} />);
+    });
+    await act(async () => getCurrent().preference[1]({ distro: "Ubuntu" }));
+    await act(async () => {
+      expect((await getCurrent().openFile("/home/ulima/repo/report:1"))._tag).toBe("Failure");
+    });
+    expect(readFile).not.toHaveBeenCalled();
+    expect(openExternal).not.toHaveBeenCalled();
+    expect(window.localStorage.getItem("t3code:last-editor")).toBeNull();
+  });
+
+  it("opens a known file at a separately supplied position", async () => {
+    await act(async () => {
+      renderer = create(<Harness environmentId={uliverse} />);
+    });
+    await act(async () => getCurrent().preference[1]({ distro: "Ubuntu" }));
+    await act(async () => {
+      expect(
+        (
+          await getCurrent().opening.openEditor("/home/ulima/repo/file.ts", undefined, "file", {
+            line: 12,
+            column: 3,
+          })
+        )._tag,
+      ).toBe("Success");
+    });
+    expect(openExternal).toHaveBeenCalledExactlyOnceWith(
+      "vscode://vscode-remote/wsl+Ubuntu/home/ulima/repo/file.ts%3A12%3A3",
+    );
+    expect(readFile).not.toHaveBeenCalled();
+  });
+
   it.each([
     { failure: "path_not_file" as const, suffix: "" },
     { failure: "binary_file" as const, suffix: "%3A1" },
@@ -302,7 +346,10 @@ describe("device-local WSL editor opening", () => {
     });
     await act(async () => renderer?.unmount());
     Object.defineProperty(window, "localStorage", {
-      value: { getItem: () => null },
+      value: {
+        /** Simulates a separate browser profile with no saved distro mapping. */
+        getItem: () => null,
+      },
     });
     await act(async () => {
       renderer = create(<Harness environmentId={uliverse} />);

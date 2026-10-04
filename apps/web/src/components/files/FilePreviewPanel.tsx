@@ -1128,6 +1128,7 @@ export default function FilePreviewPanel({
               availableEditors={availableEditors}
               openInCwd={absolutePath}
               targetKind={isDirectory ? "directory" : "file"}
+              enableShortcut={false}
               compact
             />
           ) : null}

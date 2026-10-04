@@ -49,6 +49,7 @@ vi.mock("../remoteOpen", () => ({
   useRemoteOpenResolution: () => ({ state: { mode: "local-exec" }, isResolved: true }),
 }));
 vi.mock("../editorPreferences", () => ({
+  /** Keeps Markdown rendering tests independent of environment editor discovery. */
   useEditorOpening: () => ({ preferredEditor: null, openEditor: vi.fn() }),
 }));
 vi.mock("~/lib/openPullRequestLink", () => ({

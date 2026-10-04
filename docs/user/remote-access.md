@@ -152,6 +152,9 @@ WSL** for that environment, enter its installed distribution name (for example,
 local distribution without requiring an SSH server. VS Code or VS Code Insiders
 must have the WSL extension installed.
 
+VS Code's URL handler cannot represent filenames containing numeric colon
+segments such as `report:1`. Open those files from inside VS Code instead.
+
 This preference is saved only in the current browser or desktop profile. Use it
 only for an environment running on this device; the same distribution name on
 another computer does not refer to the original environment. Choose

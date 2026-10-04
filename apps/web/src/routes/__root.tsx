@@ -576,6 +576,7 @@ function EventRouter({
         actionVariant: "outline",
         actionProps: {
           children: "Open keybindings.json",
+          /** Opens the invalid configuration through the primary environment's editor route. */
           onClick: () => {
             if (!serverConfig || !primaryEnvironment) {
               return;

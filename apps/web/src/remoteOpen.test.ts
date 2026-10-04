@@ -177,8 +177,9 @@ describe("buildWslOpenUrl", () => {
       buildWslOpenUrl({
         editor: "vscode",
         distro: "Ubuntu",
-        absolutePath: "/repo/file:12:3",
+        absolutePath: "/repo/file",
         isFile: true,
+        position: { line: 12, column: 3 },
       }),
     ).toBe("vscode://vscode-remote/wsl+Ubuntu/repo/file%3A12%3A3");
     expect(
@@ -194,10 +195,53 @@ describe("buildWslOpenUrl", () => {
       buildWslOpenUrl({
         editor: "vscode",
         distro: "Ubuntu Dev",
-        absolutePath: "/home/ulima/my repo/a#b?c%.ts:12:3",
+        absolutePath: "/home/ulima/my repo/a#b?c%.ts",
+        isFile: true,
+        position: { line: 12, column: 3 },
       }),
     ).toBe("vscode://vscode-remote/wsl+Ubuntu%20Dev/home/ulima/my%20repo/a%23b%3Fc%25.ts%3A12%3A3");
   });
+
+  it.each(["/repo/report:1", "/repo/report:12:3", "/repo/report:12:draft", "/repo/report:"])(
+    "refuses a literal filename that VS Code would rewrite (%s)",
+    (absolutePath) => {
+      expect(
+        buildWslOpenUrl({ editor: "vscode", distro: "Ubuntu", absolutePath, isFile: true }),
+      ).toBeUndefined();
+    },
+  );
+
+  it("preserves nonnumeric colons in literal filenames", () => {
+    expect(
+      buildWslOpenUrl({
+        editor: "vscode",
+        distro: "Ubuntu",
+        absolutePath: "/repo/report:draft",
+        isFile: true,
+      }),
+    ).toBe("vscode://vscode-remote/wsl+Ubuntu/repo/report%3Adraft%3A1");
+  });
+
+  it("refuses a folder name that the protocol handler would classify as a file", () => {
+    expect(
+      buildWslOpenUrl({ editor: "vscode", distro: "Ubuntu", absolutePath: "/repo/folder:1" }),
+    ).toBeUndefined();
+  });
+
+  it.each([{ line: 0 }, { line: -1 }, { line: 1.5 }, { line: 1, column: 0 }])(
+    "refuses invalid explicit positions ($line, $column)",
+    (position) => {
+      expect(
+        buildWslOpenUrl({
+          editor: "vscode",
+          distro: "Ubuntu",
+          absolutePath: "/repo/file",
+          isFile: true,
+          position,
+        }),
+      ).toBeUndefined();
+    },
+  );
 
   it("supports VS Code Insiders and distro roots", () => {
     expect(

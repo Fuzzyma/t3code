@@ -7,7 +7,11 @@ import {
   WSL_CAPABLE_EDITOR_IDS,
   ProjectReadFileError,
 } from "@t3tools/contracts";
-import { splitFilePathPosition } from "@t3tools/client-runtime/markdown-links";
+import {
+  formatFilePathPosition,
+  splitFilePathPosition,
+  type FilePathPosition,
+} from "@t3tools/client-runtime/markdown-links";
 import {
   mapAtomCommandResult,
   squashAtomCommandFailure,
@@ -108,11 +112,13 @@ export function useEditorOpening(
     /**
      * Opens a directory by default. Use file for known files or auto for terminal
      * paths; only unpositioned WSL auto targets need a query to distinguish folders.
+     * Known file paths are literal; callers with a line position pass it separately.
      */
     async (
       targetPath: string,
       requestedEditor?: EditorId,
       targetKind: "file" | "directory" | "auto" = "directory",
+      position?: Omit<FilePathPosition, "path">,
     ): Promise<
       AtomCommandResult<
         EditorId,
@@ -146,16 +152,17 @@ export function useEditorOpening(
       }
       if (remote.mode === "remote-links") {
         let isFile = targetKind === "file";
+        let fileTarget = { path: targetPath, ...position };
         if (remote.host.kind === "wsl" && targetKind === "auto") {
-          const position = splitFilePathPosition(targetPath);
-          if (position.line !== undefined) {
+          if (position === undefined) fileTarget = splitFilePathPosition(targetPath);
+          if (fileTarget.line !== undefined) {
             isFile = true;
           } else {
             // Unpositioned terminal paths can be folders or files. The existing
             // file query stats first and reports folders without reading a body.
             const result = await readFile({
               environmentId,
-              input: { cwd: "/", relativePath: position.path },
+              input: { cwd: "/", relativePath: fileTarget.path },
             });
             if (result._tag === "Success") {
               isFile = true;
@@ -176,10 +183,15 @@ export function useEditorOpening(
             ? buildWslOpenUrl({
                 editor,
                 distro: remote.host.host,
-                absolutePath: targetPath,
+                absolutePath: fileTarget.path,
                 isFile,
+                position: fileTarget,
               })
-            : buildRemoteOpenUrl({ editor, host: remote.host.host, absolutePath: targetPath });
+            : buildRemoteOpenUrl({
+                editor,
+                host: remote.host.host,
+                absolutePath: formatFilePathPosition({ path: targetPath, ...position }),
+              });
         if (url === undefined || !(await openRemoteEditorUrl(url))) {
           return AsyncResult.failure(
             Cause.fail(new PreferredEditorLaunchError({ editor, targetPath })),
@@ -191,7 +203,7 @@ export function useEditorOpening(
       const result = await openInEditor({
         environmentId,
         input: {
-          cwd: targetPath,
+          cwd: formatFilePathPosition({ path: targetPath, ...position }),
           editor,
         },
       });
