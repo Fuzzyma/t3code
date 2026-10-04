@@ -265,6 +265,7 @@ export const OpenInPicker = memo(function OpenInPicker({
 
   useEffect(() => {
     if (!enableShortcut) return;
+    /** Consumes an unhandled favorite-editor shortcut when the picker has a usable target. */
     const handler = (e: globalThis.KeyboardEvent) => {
       if (e.defaultPrevented) return;
       if (!isOpenFavoriteEditorShortcut(e, keybindings)) return;

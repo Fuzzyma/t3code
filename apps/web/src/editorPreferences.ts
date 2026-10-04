@@ -85,6 +85,7 @@ export function useEditorOpening(
 ) {
   const remote = useRemoteOpenState(environmentId);
   const remoteCapableEditors = useRemoteCapableEditors();
+  /** Uses environment CLIs for local execution and client-supported editors for remote links. */
   const effectiveEditors = useMemo(() => {
     if (remote.mode === "local-exec") return availableEditors;
     if (remote.mode === "remote-unavailable") return [];

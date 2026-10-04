@@ -552,6 +552,7 @@ function EventRouter({
     })().catch(() => undefined);
   });
 
+  /** Reports keybindings reloads and offers the routed editor action when configuration is invalid. */
   const handleServerConfigUpdated = useEffectEvent(() => {
     const decision = keybindingsToastController.handle(serverConfigEvent);
     if (!decision) {
